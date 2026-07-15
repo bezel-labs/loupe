@@ -1,6 +1,6 @@
 {
   "name": "@bezel-labs/loupe",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Runtime helpers for a Storybook preview: resolve the initial theme context (URL/localStorage) and load design-token web fonts.",
   "keywords": [
