@@ -13,9 +13,10 @@ npm install @bezel-labs/loupe
 
 ### `resolveInitialContext` — pick the initial theme context
 
-Resolves which context (theme) to apply on load. Precedence: URL `?context=` →
-`localStorage` → fallback (`"default"`). A value is only honored when it's in the known
-`contexts` list, if one is provided.
+Resolves which context (theme) to apply on load. Precedence: URL `?context=` → URL
+`?globals=context:<name>` (Storybook's format, so an embedded preview host can drive the
+theme) → `localStorage` → fallback (`"default"`). A value is only honored when it's in the
+known `contexts` list, if one is provided.
 
 ```ts
 import { resolveInitialContext } from "@bezel-labs/loupe"

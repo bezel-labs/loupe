@@ -16,6 +16,13 @@ const STORAGE_KEY = "radium-context"
 const URL_PARAM = "context"
 
 /**
+ * Storybook's native globals parameter, which hosts embedding a preview use to drive the
+ * active context (e.g. `?globals=context:dark`). Read as a fallback after `?context=` so a
+ * plain app embedded in the same host switches themes without needing Storybook.
+ */
+const GLOBALS_PARAM = "globals"
+
+/**
  * Context-name allowlist: must start with a letter, then letters/digits/dash/underscore.
  * A security boundary — the value is applied as a CSS class — and a guard against
  * URL/storage tampering.
@@ -26,11 +33,35 @@ function isValidContextName(value: unknown): value is Context {
   return typeof value === "string" && CONTEXT_NAME_RE.test(value)
 }
 
-/** Read the `?context=` URL parameter, validated. Returns `null` outside the browser. */
+/**
+ * Read the context from Storybook's `globals` parameter, a comma-separated list of
+ * `key:value` pairs (`?globals=context:dark,foo:bar`). Only the `context` key is read.
+ */
+function readContextFromGlobals(params: URLSearchParams): Context | null {
+  const raw = params.get(GLOBALS_PARAM)
+  if (!raw) return null
+
+  for (const entry of raw.split(",")) {
+    const separator = entry.indexOf(":")
+    if (separator === -1) continue
+    const key = entry.slice(0, separator).trim()
+    const value = entry.slice(separator + 1).trim()
+    if (key === URL_PARAM && isValidContextName(value)) return value
+  }
+
+  return null
+}
+
+/**
+ * Read the context from the URL, validated. Prefers the explicit `?context=` parameter and
+ * falls back to Storybook's `?globals=context:<name>`. Returns `null` outside the browser.
+ */
 function readContextFromUrl(): Context | null {
   if (typeof window === "undefined") return null
-  const value = new URLSearchParams(window.location.search).get(URL_PARAM)
-  return value && isValidContextName(value) ? value : null
+  const params = new URLSearchParams(window.location.search)
+  const value = params.get(URL_PARAM)
+  if (value && isValidContextName(value)) return value
+  return readContextFromGlobals(params)
 }
 
 /** Read the persisted context from `localStorage`, validated. Safe if storage is unavailable. */
@@ -55,7 +86,8 @@ export interface ResolveContextOptions {
 }
 
 /**
- * Resolve the context to use on load. Precedence: URL `?context=` → `localStorage` →
+ * Resolve the context to use on load. Precedence: URL `?context=` → URL
+ * `?globals=context:<name>` (Storybook's format) → `localStorage` →
  * `fallback` (default `"default"`). A resolved value is only honored if it is one of the
  * known `contexts` (when those are provided); otherwise it falls through.
  */
